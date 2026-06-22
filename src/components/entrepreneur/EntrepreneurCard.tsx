@@ -6,6 +6,9 @@ import { Card, CardBody, CardFooter } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { RequestMeetingModal } from "../../pages/colloboration/RequestMeetingModal";
 
 interface EntrepreneurCardProps {
   entrepreneur: Entrepreneur;
@@ -17,6 +20,7 @@ export const EntrepreneurCard: React.FC<EntrepreneurCardProps> = ({
   showActions = true
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const handleViewProfile = () => {
     navigate(`/profile/entrepreneur/${entrepreneur.id}`);
@@ -74,25 +78,33 @@ export const EntrepreneurCard: React.FC<EntrepreneurCardProps> = ({
       </CardBody>
       
       {showActions && (
-        <CardFooter className="border-t border-gray-100 bg-gray-50 flex justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<MessageCircle size={16} />}
-            onClick={handleMessage}
-          >
-            Message
-          </Button>
-          
-          <Button
-            variant="primary"
-            size="sm"
-            rightIcon={<ExternalLink size={16} />}
-            onClick={handleViewProfile}
-          >
-            View Profile
-          </Button>
-        </CardFooter>
+        <CardFooter className="border-t border-gray-100 bg-gray-50 flex gap-2">
+
+  <Button
+    variant="outline"
+    size="sm"
+    leftIcon={<MessageCircle size={16} />}
+    onClick={handleMessage}
+  >
+    Message
+  </Button>
+
+  {user?.role === "investor" && (
+    <RequestMeetingModal
+      entrepreneurId={entrepreneur.id}
+    />
+  )}
+
+  <Button
+    variant="primary"
+    size="sm"
+    rightIcon={<ExternalLink size={16} />}
+    onClick={handleViewProfile}
+  >
+    View Profile
+  </Button>
+
+</CardFooter>
       )}
     </Card>
   );

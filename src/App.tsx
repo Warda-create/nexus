@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 
 // Layouts
 import { DashboardLayout } from './components/layout/DashboardLayout';
+import { CalendarPage } from './pages/scheduling/CalendarPage';
 
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
@@ -16,6 +17,7 @@ import { InvestorDashboard } from './pages/dashboard/InvestorDashboard';
 // Profile Pages
 import { EntrepreneurProfile } from './pages/profile/EntrepreneurProfile';
 import { InvestorProfile } from './pages/profile/InvestorProfile';
+import { VideoCallPage } from './pages/video-call/VideoCallPage';
 
 // Feature Pages
 import { InvestorsPage } from './pages/investors/InvestorsPage';
@@ -29,6 +31,7 @@ import { DealsPage } from './pages/deals/DealsPage';
 
 // Chat Pages
 import { ChatPage } from './pages/chat/ChatPage';
+import { PaymentsPage } from "./pages/payments/PaymentsPage";
 
 function App() {
   return (
@@ -71,6 +74,10 @@ function App() {
           <Route path="/documents" element={<DashboardLayout />}>
             <Route index element={<DocumentsPage />} />
           </Route>
+
+          <Route path="/video-call" element={<DashboardLayout />}>
+  <Route index element={<VideoCallPage />} />
+</Route>
           
           <Route path="/settings" element={<DashboardLayout />}>
             <Route index element={<SettingsPage />} />
@@ -83,12 +90,20 @@ function App() {
           <Route path="/deals" element={<DashboardLayout />}>
             <Route index element={<DealsPage />} />
           </Route>
+
+          <Route path="/calendar" element={<DashboardLayout />}>
+  <Route index element={<CalendarPage />} />
+</Route>
           
           {/* Chat Routes */}
           <Route path="/chat" element={<DashboardLayout />}>
             <Route index element={<ChatPage />} />
             <Route path=":userId" element={<ChatPage />} />
           </Route>
+
+          <Route path="/payments" element={<DashboardLayout />}>
+  <Route index element={<PaymentsPage />} />
+</Route>
           
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />

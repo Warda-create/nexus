@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Entrepreneur } from '../../types';
 import { entrepreneurs } from '../../data/users';
 import { getRequestsFromInvestor } from '../../data/collaborationRequests';
+import { WalletCard } from "../../components/payments/WalletCard";
 
 export const InvestorDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -52,6 +53,7 @@ export const InvestorDashboard: React.FC = () => {
   
   return (
     <div className="space-y-6 animate-fade-in">
+      <WalletCard balance={50000} />
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Discover Startups</h1>
