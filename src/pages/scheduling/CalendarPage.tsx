@@ -1,70 +1,163 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
+import {
+  Calendar,
+  Clock,
+  Users,
+  Video,
+  Plus,
+} from "lucide-react";
+
 import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+
+import { meetings } from "../../data/meetings";
+
+import { MeetingStats } from "../../components/meetings/MeetingStats";
+import { MeetingTimeline } from "../../components/meetings/MeetingTimeline";
+import { UpcomingMeetings } from "../../components/meetings/UpcomingMeetings";
+import { MeetingFilters } from "../../components/meetings/MeetingFilters";
+import { ScheduleMeetingModal } from "../../components/meetings/ScheduleMeetingModal";
 
 export const CalendarPage = () => {
-  const [events, setEvents] = useState([
-    {
-      title: "Investor Meeting",
-      start: "2026-06-20T10:00:00",
-      end: "2026-06-20T11:00:00",
-      type: "meeting",
-    },
-  ]);
+  const [selectedStatus, setSelectedStatus] =
+    useState("all");
 
-  const handleDateClick = (info: any) => {
-    const title = prompt("Meeting Title");
-    if (!title) return;
+  const [showModal, setShowModal] =
+    useState(false);
 
-    const startTime = prompt("Start time (HH:MM)", "10:00");
-    if (!startTime) return;
+  const calendarEvents = useMemo(() => {
+    return meetings.map((meeting) => ({
+      title: meeting.title,
+      start: `${meeting.date}T10:00:00`,
+      end: `${meeting.date}T11:00:00`,
+    }));
+  }, []);
 
-    const start = `${info.dateStr}T${startTime}:00`;
+  const filteredMeetings = useMemo(() => {
+    if (selectedStatus === "all") {
+      return meetings;
+    }
 
-    setEvents([
-      ...events,
-      {
-        title,
-        start,
-        type: "meeting",
-      },
-    ]);
-  };
-
-  const eventContent = (arg: any) => {
-    return (
-      <div className="px-2 py-1 rounded-lg bg-indigo-500 text-white text-xs shadow-md">
-        <div className="font-semibold">{arg.event.title}</div>
-        <div className="opacity-80 text-[10px]">
-          {arg.timeText}
-        </div>
-      </div>
+    return meetings.filter(
+      (meeting) =>
+        meeting.status === selectedStatus
     );
-  };
+  }, [selectedStatus]);
 
   return (
-    <div className="space-y-6 bg-gray-50 p-4 rounded-xl">
+    <div className="space-y-8">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800">
-          Calendar Schedule
-        </h1>
 
-        <div className="flex gap-2">
-          <button className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">
-            + New Event
-          </button>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Meetings Hub
+          </h1>
+
+          <p className="text-gray-500 mt-1">
+            Manage meetings, schedules,
+            investors, startups and video calls.
+          </p>
         </div>
+
+        <Button
+          leftIcon={<Plus size={18} />}
+          onClick={() => setShowModal(true)}
+        >
+          Schedule Meeting
+        </Button>
+      </div>
+
+      {/* STATS */}
+
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <MeetingStats
+          title="Total Meetings"
+          value={meetings.length}
+          icon={<Calendar size={34} />}
+        />
+
+        <MeetingStats
+          title="Upcoming"
+          value={
+            meetings.filter(
+              (m) =>
+                m.status === "confirmed"
+            ).length
+          }
+          icon={<Clock size={34} />}
+        />
+
+        <MeetingStats
+          title="Participants"
+          value="24"
+          icon={<Users size={34} />}
+        />
+
+        <MeetingStats
+          title="Video Calls"
+          value="18"
+          icon={<Video size={34} />}
+        />
+      </div>
+
+      {/* FILTER */}
+
+      <Card className="p-5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">
+              Meeting Filters
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Filter meetings by status
+            </p>
+          </div>
+
+          <MeetingFilters
+            selectedStatus={
+              selectedStatus
+            }
+            setSelectedStatus={
+              setSelectedStatus
+            }
+          />
+        </div>
+      </Card>
+
+      {/* UPCOMING */}
+
+      <div>
+        <h2 className="text-xl font-bold mb-4">
+          Upcoming Meetings
+        </h2>
+
+        <UpcomingMeetings
+          meetings={filteredMeetings}
+        />
       </div>
 
       {/* CALENDAR */}
-      <Card className="p-4 shadow-lg rounded-2xl">
+
+      <Card className="p-5">
+        <div className="mb-5">
+          <h2 className="text-xl font-bold">
+            Meeting Calendar
+          </h2>
+
+          <p className="text-gray-500">
+            Weekly meeting schedule
+          </p>
+        </div>
+
         <FullCalendar
           plugins={[
             dayGridPlugin,
@@ -72,22 +165,85 @@ export const CalendarPage = () => {
             interactionPlugin,
           ]}
           initialView="timeGridWeek"
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay",
-          }}
+          events={calendarEvents}
+          selectable
+          editable
+          height="700px"
           slotMinTime="08:00:00"
           slotMaxTime="22:00:00"
           allDaySlot={false}
-          selectable
-          editable
-          events={events}
-          dateClick={handleDateClick}
-          eventContent={eventContent}
-          height="750px"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right:
+              "dayGridMonth,timeGridWeek,timeGridDay",
+          }}
         />
       </Card>
+
+      {/* LOWER SECTION */}
+
+      <div className="grid gap-6 xl:grid-cols-2">
+
+        <MeetingTimeline />
+
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-5">
+            Recent Meeting Notes
+          </h2>
+
+          <div className="space-y-4">
+
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold">
+                Funding Discussion
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-2">
+                Investor interested in
+                reviewing financial
+                projections and market
+                validation metrics.
+              </p>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold">
+                Product Demo
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-2">
+                Positive feedback received.
+                Requested roadmap and
+                customer growth numbers.
+              </p>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold">
+                Due Diligence
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-2">
+                Documentation approved.
+                Moving toward investment
+                discussion stage.
+              </p>
+            </div>
+
+          </div>
+        </Card>
+
+      </div>
+
+      {/* MODAL */}
+
+      <ScheduleMeetingModal
+        isOpen={showModal}
+        onClose={() =>
+          setShowModal(false)
+        }
+      />
     </div>
   );
 };
