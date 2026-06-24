@@ -39,7 +39,7 @@ export const EntrepreneurDashboard: React.FC = () => {
   
   return (
     <div className="space-y-6 animate-fade-in">
-      <WalletCard balance={15000} />
+      <WalletCard balance={50000} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome, {user.name}</h1>
