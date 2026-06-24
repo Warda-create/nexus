@@ -1,216 +1,359 @@
-import React, { useState } from "react";
+import React from "react";
 import {
+  Search,
+  Folder,
   FileText,
-  Upload,
   Download,
   Trash2,
   Share2,
   Eye,
+  FileImage,
+  FileSpreadsheet,
+  FileArchive,
 } from "lucide-react";
 
-import { Card, CardHeader, CardBody } from "../../components/ui/Card";
-import { Button } from "../../components/ui/Button";
+import { Card, CardBody, CardHeader } from "../../components/ui/Card";
+import { Input } from "../../components/ui/Input";
 import { Badge } from "../../components/ui/Badge";
 
-import { DocumentStatusBadge } from "../../components/documents/StatusBadge";
-import { DocItem } from "../../types/document";
+import { DocumentUpload } from "../../components/documents/DocumentUpload";
+import { StatusBadge } from "../../components/documents/StatusBadge";
 
-const initialDocs: DocItem[] = [
-  {
-    id: "1",
-    name: "Pitch Deck 2024.pdf",
-    type: "PDF",
-    size: "2.4 MB",
-    lastModified: "2024-02-15",
-    shared: true,
-    status: "Draft",
-  },
-  {
-    id: "2",
-    name: "Financial Projections.xlsx",
-    type: "Spreadsheet",
-    size: "1.8 MB",
-    lastModified: "2024-02-10",
-    shared: false,
-    status: "In Review",
-  },
-  {
-    id: "3",
-    name: "Business Plan.docx",
-    type: "Document",
-    size: "3.2 MB",
-    lastModified: "2024-02-05",
-    shared: true,
-    status: "Signed",
-  },
-];
+import { useDocuments } from "../../hooks/useDocuments";
+import { downloadDocument } from "../../services/documentService";
 
 export const DocumentsPage: React.FC = () => {
-  const [docs, setDocs] = useState<DocItem[]>(initialDocs);
-  const [selectedDoc, setSelectedDoc] = useState<DocItem | null>(null);
+  const {
+    filteredDocuments,
+    selectedDocument,
+    setSelectedDocument,
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    searchQuery,
+    setSearchQuery,
 
-    const newDoc: DocItem = {
-      id: Date.now().toString(),
-      name: file.name,
-      type: file.type,
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      lastModified: new Date().toISOString().split("T")[0],
-      shared: false,
-      status: "Draft",
-      url: URL.createObjectURL(file),
-    };
+    selectedCategory,
+    setSelectedCategory,
 
-    setDocs([newDoc, ...docs]);
+    uploadDocument,
+    uploadDocuments,
+
+    removeDocument,
+
+    folders,
+  } = useDocuments();
+
+  const getFileIcon = (type: string) => {
+    const lower = type.toLowerCase();
+
+    if (
+      lower.includes("image") ||
+      lower.includes("png") ||
+      lower.includes("jpg") ||
+      lower.includes("jpeg")
+    ) {
+      return <FileImage size={20} />;
+    }
+
+    if (
+      lower.includes("sheet") ||
+      lower.includes("excel") ||
+      lower.includes("spreadsheet")
+    ) {
+      return <FileSpreadsheet size={20} />;
+    }
+
+    if (
+      lower.includes("zip") ||
+      lower.includes("rar")
+    ) {
+      return <FileArchive size={20} />;
+    }
+
+    return <FileText size={20} />;
+  };
+
+  const renderPreview = () => {
+    if (!selectedDocument) {
+      return (
+        <div className="h-full flex items-center justify-center text-gray-500">
+          Select a document to preview
+        </div>
+      );
+    }
+
+    if (!selectedDocument.url) {
+      return (
+        <div className="h-full flex items-center justify-center text-gray-500">
+          Preview unavailable
+        </div>
+      );
+    }
+
+    const lower =
+      selectedDocument.name.toLowerCase();
+
+    if (
+      lower.endsWith(".png") ||
+      lower.endsWith(".jpg") ||
+      lower.endsWith(".jpeg") ||
+      lower.endsWith(".gif") ||
+      lower.endsWith(".webp")
+    ) {
+      return (
+        <img
+          src={selectedDocument.url}
+          alt={selectedDocument.name}
+          className="max-h-[500px] mx-auto rounded-lg"
+        />
+      );
+    }
+
+    if (lower.endsWith(".pdf")) {
+      return (
+        <iframe
+          src={selectedDocument.url}
+          title={selectedDocument.name}
+          className="w-full h-[500px] rounded-lg border"
+        />
+      );
+    }
+
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500">
+        Preview not available for this file type
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Document Chamber</h1>
-          <p className="text-gray-500">
-            Upload, sign and manage legal documents
-          </p>
-        </div>
+      {/* Upload Section */}
+      <DocumentUpload
+        onUpload={uploadDocument}
+        onMultipleUpload={uploadDocuments}
+      />
 
-        <label>
-          <input
-            type="file"
-            className="hidden"
-            onChange={handleUpload}
-          />
-          <Button leftIcon={<Upload size={18} />}>
-            Upload Document
-          </Button>
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* LEFT PANEL */}
-        <Card className="lg:col-span-1">
+      {/* Main Explorer Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Sidebar */}
+        <Card className="xl:col-span-3">
           <CardHeader>
-            <h2 className="font-semibold">Quick Filters</h2>
+            <h2 className="font-semibold text-lg">
+              Folders
+            </h2>
           </CardHeader>
 
           <CardBody className="space-y-2">
-            {["All", "Draft", "In Review", "Signed"].map((f) => (
+            {folders.map((folder) => (
               <button
-                key={f}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded"
+                key={folder.name}
+                onClick={() =>
+                  setSelectedCategory(
+                    folder.name as any
+                  )
+                }
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                  selectedCategory ===
+                  folder.name
+                    ? "bg-primary-50 text-primary-700"
+                    : "hover:bg-gray-100"
+                }`}
               >
-                {f}
+                <div className="flex items-center gap-2">
+                  <Folder size={18} />
+                  <span>{folder.name}</span>
+                </div>
+
+                <Badge
+                  variant="gray"
+                  size="sm"
+                >
+                  {folder.count}
+                </Badge>
               </button>
             ))}
           </CardBody>
         </Card>
 
-        {/* DOCUMENT LIST */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <h2 className="font-semibold">Documents</h2>
-            </CardHeader>
+        {/* Documents */}
+        <Card className="xl:col-span-5">
+          <CardHeader>
+            <div className="space-y-4">
+              <h2 className="font-semibold text-lg">
+                Documents
+              </h2>
 
-            <CardBody className="space-y-2">
-              {docs.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                >
-                  {/* LEFT */}
-                  <div className="flex items-center gap-3">
-                    <FileText className="text-primary-600" />
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">
-                          {doc.name}
-                        </p>
-                        {doc.shared && (
-                          <Badge variant="secondary" size="sm">
-                            Shared
-                          </Badge>
+                <Input
+                  value={searchQuery}
+                  onChange={(e) =>
+                    setSearchQuery(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Search documents..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardBody className="p-0">
+            <div className="max-h-[700px] overflow-y-auto">
+              {filteredDocuments.length ===
+              0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  No documents found
+                </div>
+              ) : (
+                filteredDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
+                      selectedDocument?.id ===
+                      doc.id
+                        ? "bg-primary-50"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      setSelectedDocument(
+                        doc
+                      )
+                    }
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-primary-600 mt-1">
+                        {getFileIcon(
+                          doc.type
                         )}
                       </div>
 
-                      <p className="text-xs text-gray-500">
-                        {doc.type} • {doc.size} •{" "}
-                        {doc.lastModified}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">
+                          {doc.name}
+                        </h3>
 
-                      <div className="mt-1">
-                        <DocumentStatusBadge
-                          status={doc.status}
-                        />
+                        <p className="text-sm text-gray-500">
+                          {doc.size}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <StatusBadge
+                            status={
+                              doc.status
+                            }
+                          />
+
+                          <Badge
+                            variant="gray"
+                            size="sm"
+                          >
+                            {
+                              doc.category
+                            }
+                          </Badge>
+                        </div>
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-2 mt-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDocument(
+                            doc
+                          );
+                        }}
+                        className="p-2 rounded hover:bg-gray-100"
+                      >
+                        <Eye size={16} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadDocument(
+                            doc
+                          );
+                        }}
+                        className="p-2 rounded hover:bg-gray-100"
+                      >
+                        <Download
+                          size={16}
+                        />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(
+                            "Share feature coming soon"
+                          );
+                        }}
+                        className="p-2 rounded hover:bg-gray-100"
+                      >
+                        <Share2
+                          size={16}
+                        />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          if (
+                            window.confirm(
+                              "Delete this document?"
+                            )
+                          ) {
+                            removeDocument(
+                              doc.id
+                            );
+                          }
+                        }}
+                        className="p-2 rounded hover:bg-red-50 text-red-600"
+                      >
+                        <Trash2
+                          size={16}
+                        />
+                      </button>
+                    </div>
                   </div>
+                ))
+              )}
+            </div>
+          </CardBody>
+        </Card>
 
-                  {/* ACTIONS */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedDoc(doc)}
-                    >
-                      <Eye size={16} />
-                    </Button>
-
-                    <Button variant="ghost" size="sm">
-                      <Download size={16} />
-                    </Button>
-
-                    <Button variant="ghost" size="sm">
-                      <Share2 size={16} />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* RIGHT PANEL - PREVIEW */}
-        <Card className="lg:col-span-1">
+        {/* Preview */}
+        <Card className="xl:col-span-4">
           <CardHeader>
-            <h2 className="font-semibold">Preview</h2>
+            <h2 className="font-semibold text-lg">
+              Preview
+            </h2>
           </CardHeader>
 
           <CardBody>
-            {selectedDoc ? (
-              <div className="space-y-3">
-                <p className="font-medium">
-                  {selectedDoc.name}
+            {selectedDocument && (
+              <div className="mb-4">
+                <h3 className="font-medium break-words">
+                  {selectedDocument.name}
+                </h3>
+
+                <p className="text-sm text-gray-500">
+                  {
+                    selectedDocument.size
+                  }
                 </p>
-
-                <div className="text-xs text-gray-500">
-                  {selectedDoc.type}
-                </div>
-
-                <div className="h-40 bg-gray-100 rounded flex items-center justify-center text-sm text-gray-500">
-                  Document Preview
-                </div>
-
-                <Button fullWidth>Open Full View</Button>
               </div>
-            ) : (
-              <p className="text-sm text-gray-400">
-                Select a document to preview
-              </p>
             )}
+
+            {renderPreview()}
           </CardBody>
         </Card>
       </div>
